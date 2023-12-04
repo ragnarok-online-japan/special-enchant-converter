@@ -7,7 +7,6 @@ import urllib.error
 import urllib.parse
 import urllib.request
 
-from PIL import Image, ImageDraw, ImageFont
 from pyquery import PyQuery as pq
 
 parser = argparse.ArgumentParser(description='')
@@ -29,7 +28,7 @@ parser.add_argument('--export-json',
 parser.add_argument('--items-url',
                     action='store',
                     nargs=1,
-                    default='https://ragnarokonline.0nyx.net/assets/json/items.json',
+                    default='https://rodb.aws.0nyx.net/ROOD/items.json',
                     type=str,
                     help='import items json url')
 
@@ -68,12 +67,24 @@ def main(args: dict):
             enchant_npc = doc("h3 > span").text()
             enchant_npc = re.sub(r"^(NPC.+」).*$", "\\1", enchant_npc)
             enchant_list[enchant_npc] = {"target_items":{}}
+
         elif doc("table"):
             items = doc("table")("thead > tr > th:nth-child(1)").html()
             description = doc("table")("thead > tr > th:nth-child(2)").text().replace("\n","")
 
+            if items is None or items == "":
+                continue
+
             items = items.split("<br />")
             for item in items:
+                item = re.sub(r"^[&#\s\d;]+", "", item)
+                item = re.sub(r"[&#\s\d;]+$", "", item)
+                item = item.strip()
+                #print("[{:s}]".format(item))
+
+                if item == "対象アイテム名":
+                    continue
+
                 enchant_list[enchant_npc]["target_items"][item] = {
                     "description": description,
                     "slot":{}
@@ -116,6 +127,7 @@ def main(args: dict):
                         "smelting": slot_smelting,
                         "enchants": enchants_dataset
                     }
+
     with open(args.export_json, "w", encoding="utf-8") as fp:
         json.dump(enchant_list, fp, indent=1, ensure_ascii=False)
 
